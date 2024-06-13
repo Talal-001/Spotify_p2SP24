@@ -1,0 +1,109 @@
+import tkinter as tk
+from tkinter import ttk
+import pygame
+import os
+from playlist import Playlist
+from song import Song
+from login_window import LoginWindow
+
+pygame.init()
+pygame.mixer.init()
+
+class UserMusicPlayer:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("User Music Player")
+        self.root.geometry("800x500")
+        self.root.configure(bg="teal")
+
+        self.playlist = Playlist()
+        self.current_song_index = 0
+
+        self.song_listbox = tk.Listbox(self.root, selectmode=tk.SINGLE, width=90, height=22, font=("KOEEYA", 12))
+        self.song_listbox.pack(pady=20, padx=20)
+        self.update_song_listbox()
+
+        self.play_button = ttk.Button(self.root, text=" Play song ▶️ ", command=self.start_playing)
+        self.play_button.pack(side=tk.LEFT, padx=10)
+
+        self.prev_button = ttk.Button(self.root, text=" Prev song ◀| ", command=self.prev_song, style="TButton")
+        self.prev_button.pack(side=tk.LEFT, padx=10)
+
+        self.next_button = ttk.Button(self.root, text=" Next song ▶| ", command=self.next_song, style="TButton")
+        self.next_button.pack(side=tk.LEFT, padx=10)
+
+        self.pause_button = ttk.Button(self.root, text=" Pause song ⏸️", command=self.pause_song)
+        self.pause_button.pack(side=tk.LEFT, padx=10)
+
+        self.volume_slider = ttk.Scale(self.root, from_=0.0, to=1.0, orient=tk.HORIZONTAL, length=200, command=self.volume)
+        self.volume_slider.set(0.5)
+        self.volume_slider.pack(padx=10, side=tk.LEFT)
+
+        self.exit_button = ttk.Button(self.root, text="exit", command=self.exit, style="TButton")
+        self.exit_button.pack(side=tk.LEFT, padx=10)
+
+        pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+
+        
+        self.is_playing = False
+
+    def prev_song(self):
+        if self.playlist.songs:
+            self.current_song_index = (self.current_song_index - 1) % len(self.playlist.songs)
+            self.play_song()
+
+    def play_song(self):
+        if self.playlist.songs:
+            pygame.mixer.music.load(self.playlist.songs[self.current_song_index].file_path)
+            pygame.mixer.music.play(loops=0)
+            self.is_playing = True  
+            self.update_song_label()
+
+    def next_song(self):
+        if self.playlist.songs:
+            self.current_song_index = (self.current_song_index + 1) % len(self.playlist.songs)
+            self.play_song()
+
+    def pause_song(self):
+        pygame.mixer.music.pause()
+        self.is_playing = False  
+
+    def volume(self, x):
+        pygame.mixer.music.set_volume(self.volume_slider.get())
+
+    def update_song_listbox(self):
+        self.song_listbox.delete(0, tk.END)
+        for i, song in enumerate(self.playlist.songs):
+            self.song_listbox.insert(tk.END, f"{i + 1}. {song.title}")
+
+    def update_song_label(self):
+        if self.playlist.songs:
+            current_song = os.path.basename(self.playlist.songs[self.current_song_index].file_path)
+            self.song_listbox.selection_clear(0, tk.END)
+            self.song_listbox.selection_set(self.current_song_index)
+            self.song_listbox.see(self.current_song_index)
+
+    def check_for_song_end(self):
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.USEREVENT + 1:
+                self.next_song()
+
+        if self.is_playing:
+            self.root.after(100, self.check_for_song_end)
+
+    def exit(self):
+        self.root.destroy()
+        pygame.mixer.music.stop()
+        self.root = tk.Tk()
+        LoginWindow(self.root)
+        self.root.mainloop()
+
+    def start_playing(self):
+        if self.playlist.songs:
+            self.play_song()  
+            self.check_for_song_end()  
+
+    def mainloop(self):
+        self.root.mainloop()
+
