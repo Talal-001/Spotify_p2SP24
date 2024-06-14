@@ -1,10 +1,10 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, ACTIVE, END
 import pygame
 import os
 from playlist import Playlist
-from music_player import MusicPlayer 
-from login_window import LoginWindow  
+from music_player import MusicPlayer
+from login_window import LoginWindow
 
 pygame.init()
 pygame.mixer.init()
@@ -19,7 +19,7 @@ class AdminmusicPlayer(MusicPlayer):
         self.playlist = Playlist()
         self.current_song_index = 0
 
-        self.song_listbox = tk.Listbox(self.root, selectmode=tk.SINGLE, width=90, height=22, font=("KOEEYA", 12))
+        self.song_listbox = tk.Listbox(self.root,bg="black",fg="white",selectbackground="gray",selectforeground="green", selectmode=tk.SINGLE, width=90, height=22, font=("KOEEYA", 12))
         self.song_listbox.pack(pady=20, padx=20)
         self.update_song_listbox()
 
@@ -48,7 +48,6 @@ class AdminmusicPlayer(MusicPlayer):
         self.exit_button = ttk.Button(self.root, text="exit", command=self.exit, style="TButton")
         self.exit_button.pack(side=tk.LEFT, padx=10)
 
-        
         pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
         self.root.after(100, self.check_for_song_end)
 
@@ -60,23 +59,33 @@ class AdminmusicPlayer(MusicPlayer):
 
     def play_song(self):
         if self.playlist.songs:
-            pygame.mixer.music.load(self.playlist.songs[self.current_song_index].file_path)
-            pygame.mixer.music.play()
-            self.update_song_label()
+            selected_song = self.song_listbox.get(ACTIVE)
+            all_songs = self.song_listbox.get(0, END)
+            self.current_song_index = all_songs.index(selected_song)
 
-            
+            song_file_path = self.playlist.songs[self.current_song_index].file_path
+            pygame.mixer.music.load(song_file_path)
+            pygame.mixer.music.play()
             pygame.mixer.music.set_endevent(pygame.USEREVENT + 1)
+            self.update_song_label()
 
     def next_song(self):
         if self.playlist.songs:
             self.current_song_index = (self.current_song_index + 1) % len(self.playlist.songs)
+            self.song_listbox.selection_clear(0, END)
+            self.song_listbox.selection_set(self.current_song_index)
+            self.song_listbox.activate(self.current_song_index)
+            self.song_listbox.see(self.current_song_index)
             self.play_song()
 
     def prev_song(self):
         if self.playlist.songs:
             self.current_song_index = (self.current_song_index - 1) % len(self.playlist.songs)
+            self.song_listbox.selection_clear(0, END)
+            self.song_listbox.selection_set(self.current_song_index)
+            self.song_listbox.activate(self.current_song_index)
+            self.song_listbox.see(self.current_song_index)
             self.play_song()
-
     def pause_song(self):
         pygame.mixer.music.pause()
 
@@ -112,4 +121,3 @@ class AdminmusicPlayer(MusicPlayer):
         self.root = tk.Tk()
         LoginWindow(self.root)
         self.root.mainloop()
-
